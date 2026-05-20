@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blockchain Transaction Lifecycle — Interactive Demo</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #131320;
+    --border: #252540;
+    --text: #e0e0f0;
+    --muted: #8888aa;
+    --accent: #7c5cfc;
+    --green: #4ade80;
+    --yellow: #facc15;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --orange: #fb923c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem 2rem;
+    text-align: center;
+  }
+  header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p { color: var(--muted); margin-top: 0.25rem; font-size: 0.9rem; }
+  main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+  section { margin-bottom: 2.5rem; }
+
+  /* Flow Stepper */
+  .stepper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .step-btn {
+    flex: 1 1 0;
+    min-width: 100px;
+    padding: 1rem 0.75rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .step-btn:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  .step-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: rgba(124,92,252,0.08);
+  }
+  .step-btn.done {
+    color: var(--green);
+    border-bottom-color: var(--green);
+  }
+  .step-num {
+    display: block;
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  /* Step Detail */
+  .step-panel {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    padding: 2rem;
+    animation: fadeIn 0.3s ease;
+  }
+  .step-panel.visible { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .step-panel h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: var(--accent);
+  }
+  .step-panel .code-block {
+    background: #0a0a16;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+    color: var(--green);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .step-panel .note {
+    background: rgba(124,92,252,0.1);
+    border-left: 3px solid var(--accent);
+    padding: 0.75rem 1rem;
+    border-radius: 0 6px 6px 0;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  .badge {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 99px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .badge-local { background: rgba(96,165,250,0.2); color: var(--blue); }
+  .badge-network { background: rgba(251,146,60,0.2); color: var(--orange); }
+  .badge-chain { background: rgba(74,222,128,0.2); color: var(--green); }
+
+  /* Concept Cards */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    perspective: 1000px;
+    min-height: 160px;
+  }
+  .card-inner {
+    padding: 1.25rem;
+    height: 100%;
+  }
+  .card h4 { font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text); }
+  .card .front-text { color: var(--muted); font-size: 0.85rem; }
+  .card .back-text { display: none; color: var(--text); font-size: 0.85rem; margin-top: 0.5rem; }
+  .card.flipped .front-text { display: none; }
+  .card.flipped .back-text { display: block; }
+  .card.flipped h4 { color: var(--accent); }
+  .card .hint { font-size: 0.7rem; color: var(--muted); margin-top: 0.75rem; font-style: italic; }
+
+  /* Quiz */
+  .quiz-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+  }
+  .quiz-q { margin-bottom: 1.5rem; }
+  .quiz-q p { font-weight: 600; margin-bottom: 0.75rem; }
+  .quiz-q label {
+    display: block;
+    padding: 0.6rem 1rem;
+    margin: 0.25rem 0;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-size: 0.9rem;
+  }
+  .quiz-q label:hover { background: rgba(124,92,252,0.08); }
+  .quiz-q input[type="radio"] { margin-right: 0.5rem; accent-color: var(--accent); }
+  .quiz-result {
+    padding: 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    margin-top: 1rem;
+    display: none;
+  }
+  .quiz-result.show { display: block; }
+  .quiz-result.correct { background: rgba(74,222,128,0.15); color: var(--green); border: 1px solid rgba(74,222,128,0.3); }
+  .quiz-result.wrong { background: rgba(248,113,113,0.15); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: opacity 0.15s;
+  }
+  button:hover { opacity: 0.85; }
+  button.secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .sim-result {
+    background: #0a0a16;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    margin-top: 0.75rem;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .meta-box {
+    background: rgba(251,191,36,0.1);
+    border: 1px solid rgba(251,191,36,0.3);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    font-size: 0.85rem;
+  }
+  .meta-box h3 { color: var(--yellow); margin-bottom: 0.75rem; }
+  .meta-box ul { padding-left: 1.25rem; }
+  .meta-box li { margin: 0.35rem 0; }
+  .meta-box .tag { font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 4px; margin-right: 0.25rem; }
+  .tag-agent { background: rgba(124,92,252,0.3); color: #c4b5fd; }
+  .tag-human { background: rgba(74,222,128,0.3); color: #86efac; }
+  .tag-bug { background: rgba(248,113,113,0.3); color: #fca5a5; }
+
+  footer { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 2rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Blockchain Transaction Lifecycle</h1>
+  <p>Interactive demo — 点击每个步骤查看细节 | AI × Web3 School Week 1</p>
+</header>
+
+<main>
+
+<!-- SECTION 1: Interactive Stepper -->
+<section>
+  <h2 style="margin-bottom:0.75rem;">1. Transaction Flow Stepper</h2>
+  <p style="color:var(--muted);margin-bottom:1rem;font-size:0.9rem;">点击每个步骤查看区块链交易的完整生命周期</p>
+
+  <div class="stepper" id="stepper">
+    <button class="step-btn active" data-step="0">
+      <span class="step-num">&#128273;</span> Sign
+    </button>
+    <button class="step-btn" data-step="1">
+      <span class="step-num">&#128228;</span> Broadcast
+    </button>
+    <button class="step-btn" data-step="2">
+      <span class="step-num">&#128451;</span> Mempool
+    </button>
+    <button class="step-btn" data-step="3">
+      <span class="step-num">&#9937;</span> Gas &amp; Mine
+    </button>
+    <button class="step-btn" data-step="4">
+      <span class="step-num">&#9989;</span> Confirm
+    </button>
+  </div>
+
+  <div class="step-panel visible" id="panel-0">
+    <h3><span class="badge badge-local">Off-chain</span> Step 1: Sign the Transaction</h3>
+    <p>用户构造交易并用自己的<strong>私钥</strong>签名。签名证明：</p>
+    <ul style="margin:0.5rem 0 0.5rem 1.25rem;font-size:0.9rem;">
+      <li>交易确实由该地址发起（身份认证）</li>
+      <li>交易内容未经篡改（完整性）</li>
+      <li>签名后不可抵赖（不可否认性）</li>
+    </ul>
+    <div class="code-block">{
+  "from": "0xAbC...123",
+  "to": "0xDeF...456",
+  "value": "0.1 ETH",
+  "nonce": 42,
+  "gasLimit": 21000,
+  "maxFeePerGas": "30 gwei",
+  "signature": "0xaf39...8b2c"  // ECDSA signed by private key
+}</div>
+    <div class="note"><strong>Key Insight:</strong> 签名在本地完成，私钥永远不会离开你的钱包。签名算法使用 ECDSA（以太坊）或 Ed25519（Solana）。</div>
+  </div>
+
+  <div class="step-panel" id="panel-1">
+    <h3><span class="badge badge-network">Network</span> Step 2: Broadcast via RPC</h3>
+    <p>签名后的交易通过 <strong>JSON-RPC</strong> 发送到节点（自建节点或 Infura / Alchemy 等服务商）。</p>
+    <div class="code-block">POST https://mainnet.infura.io/v3/YOUR-KEY
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "method": "eth_sendRawTransaction",
+  "params": ["0x02f8b0..."],  // signed raw tx
+  "id": 1
+}</div>
+    <div class="note"><strong>Key Insight:</strong> RPC 是 DApp 和区块链之间的桥梁。节点收到交易后先做基本验证（签名有效？nonce 正确？余额足够？），验证通过后广播到 P2P 网络。</div>
+  </div>
+
+  <div class="step-panel" id="panel-2">
+    <h3><span class="badge badge-network">Network</span> Step 3: Waiting in Mempool</h3>
+    <p>交易进入节点的<strong>内存池（Mempool）</strong>，等待矿工/验证者打包。Mempool 是一个公共等待区。</p>
+    <ul style="margin:0.5rem 0 0.5rem 1.25rem;font-size:0.9rem;">
+      <li>所有待确认交易都在这里</li>
+      <li>矿工按 <strong>Gas Price 从高到低</strong>排序选择交易</li>
+      <li>Gas 给得越高，越快被打包</li>
+      <li>MEV bots 会扫描 Mempool 寻找套利机会</li>
+    </ul>
+    <div class="sim-result" id="mempool-sim">Ready to simulate... click "Simulate Mempool" below</div>
+    <button onclick="simulateMempool()" style="margin-top: 0.75rem;">Simulate Mempool Priority</button>
+  </div>
+
+  <div class="step-panel" id="panel-3">
+    <h3><span class="badge badge-chain">On-chain</span> Step 4: Gas &amp; Block Mining</h3>
+    <p>矿工/验证者选取交易执行，消耗 <strong>Gas</strong>（计算资源计价单位）。</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0;">
+      <div style="background:rgba(96,165,250,0.08);padding:1rem;border-radius:8px;border:1px solid rgba(96,165,250,0.2);">
+        <strong style="color:var(--blue);">Gas Limit</strong>
+        <p style="font-size:0.85rem;margin-top:0.25rem;color:var(--muted);">你愿意为这笔交易支付的最大 Gas 数量。简单转账: 21,000。合约调用: 取决于复杂度。</p>
+      </div>
+      <div style="background:rgba(251,146,60,0.08);padding:1rem;border-radius:8px;border:1px solid rgba(251,146,60,0.2);">
+        <strong style="color:var(--orange);">Gas Price</strong>
+        <p style="font-size:0.85rem;margin-top:0.25rem;color:var(--muted);">每单位 Gas 愿意支付的价格。Gas Price 越高，交易越快被打包。</p>
+      </div>
+    </div>
+    <p style="font-size:0.85rem;"><strong>Total Fee = Gas Used × Gas Price</strong></p>
+    <div class="note"><strong>EIP-1559 后：</strong>费用分为 Base Fee（燃烧）+ Priority Fee（给验证者的小费）。Base Fee 会根据网络拥堵自动调整。</div>
+  </div>
+
+  <div class="step-panel" id="panel-4">
+    <h3><span class="badge badge-chain">On-chain</span> Step 5: Block Confirmation</h3>
+    <p>交易被打包进区块并添加到链上。随着后续区块增加，交易被篡改的可能性<strong>指数级下降</strong>。</p>
+    <div class="code-block">Block #18543210
+  Timestamp: 2026-05-20 15:32:11
+  Transactions: 187 txns in this block
+  Gas Used: 12,458,921 (41.5% of target)
+
+  Your TX: 0x7a3b...c91e
+    Status: ✓ Success
+    Block Confirmations: 12
+    Finality: Economic finality reached</div>
+    <div class="note"><strong>经验法则：</strong>小额交易等 6-12 个区块确认；大额交易建议等到 30+ 区块。不同链的最终确认时间不同——以太坊约 12 秒/块，Solana 约 0.4 秒/块。</div>
+  </div>
+</section>
+
+<!-- SECTION 2: Concept Cards -->
+<section>
+  <h2 style="margin-bottom:0.75rem;">2. Concept Cards</h2>
+  <p style="color:var(--muted);margin-bottom:1rem;font-size:0.9rem;">点击卡片翻转查看详细解释</p>
+  <div class="card-grid">
+    <div class="card" onclick="this.classList.toggle('flipped')">
+      <div class="card-inner">
+        <h4>Nonce</h4>
+        <p class="front-text">交易序号，防止重放攻击。</p>
+        <p class="back-text">每个地址的交易计数器，从 0 开始递增。每笔交易必须使用正确的 nonce，节点按 nonce 顺序执行交易。如果 nonce 跳号，后续交易会一直 pending。</p>
+        <p class="hint">Click to flip</p>
+      </div>
+    </div>
+    <div class="card" onclick="this.classList.toggle('flipped')">
+      <div class="card-inner">
+        <h4>RPC Endpoint</h4>
+        <p class="front-text">DApp 与节点的通信接口。</p>
+        <p class="back-text">JSON-RPC 是区块链最主流的 RPC 实现。常见方法: eth_getBalance, eth_sendRawTransaction, eth_call, eth_getLogs。公共 RPC 有限速，生产环境建议用专用节点或 Infura/Alchemy 等服务。</p>
+        <p class="hint">Click to flip</p>
+      </div>
+    </div>
+    <div class="card" onclick="this.classList.toggle('flipped')">
+      <div class="card-inner">
+        <h4>ECDSA Signature</h4>
+        <p class="front-text">椭圆曲线数字签名算法。</p>
+        <p class="back-text">以太坊使用 secp256k1 曲线。签名产生 (r, s, v) 三个值，v 用于恢复公钥。从签名可以反推出签名者的地址（这就是为什么以太坊交易不需要包含 from 字段）。</p>
+        <p class="hint">Click to flip</p>
+      </div>
+    </div>
+    <div class="card" onclick="this.classList.toggle('flipped')">
+      <div class="card-inner">
+        <h4>Gas</h4>
+        <p class="front-text">链上计算资源的计价单位。</p>
+        <p class="back-text">每个 EVM 操作码都有 Gas 成本。例如 ADD 操作消耗 3 Gas，SSTORE（存储写入）消耗高达 20,000+ Gas。Gas 机制防止无限循环耗尽网络资源——Gas 用完交易就 revert。</p>
+        <p class="hint">Click to flip</p>
+      </div>
+    </div>
+    <div class="card" onclick="this.classList.toggle('flipped')">
+      <div class="card-inner">
+        <h4>Mempool</h4>
+        <p class="front-text">待确认交易的公共等待区。</p>
+        <p class="back-text">每个节点维护自己的 Mempool。交易不会立即上链，而是在 Mempool 中等待矿工选择。Gas 价格是主要排序因素。MEV searchers 通过分析 Mempool 寻找 sandwich attack 等套利机会。</p>
+        <p class="hint">Click to flip</p>
+      </div>
+    </div>
+    <div class="card" onclick="this.classList.toggle('flipped')">
+      <div class="card-inner">
+        <h4>Block Finality</h4>
+        <p class="front-text">交易不可逆的确认程度。</p>
+        <p class="back-text">PoW 链（如以太坊 pre-Merge）是概率性最终性：区块越深越难逆转。PoS 链有经济最终性：以太坊经过 2 个 epoch（约 12.8 分钟）后达到最终确认。Solana 等链有更快的最终性机制。</p>
+        <p class="hint">Click to flip</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3: Mini Quiz -->
+<section>
+  <h2 style="margin-bottom:0.75rem;">3. Quick Quiz</h2>
+  <div class="quiz-block">
+    <div class="quiz-q">
+      <p>Q1: 交易签名使用的是什么算法？（以太坊）</p>
+      <label><input type="radio" name="q1" value="a"> RSA</label>
+      <label><input type="radio" name="q1" value="b"> ECDSA (secp256k1)</label>
+      <label><input type="radio" name="q1" value="c"> SHA-256</label>
+    </div>
+    <div class="quiz-q">
+      <p>Q2: 一笔最简单的 ETH 转账最少需要多少 Gas Limit？</p>
+      <label><input type="radio" name="q2" value="a"> 10,000</label>
+      <label><input type="radio" name="q2" value="b"> 21,000</label>
+      <label><input type="radio" name="q2" value="c"> 100,000</label>
+    </div>
+    <div class="quiz-q">
+      <p>Q3: RPC 在区块链架构中的作用是什么？</p>
+      <label><input type="radio" name="q3" value="a"> 共识算法</label>
+      <label><input type="radio" name="q3" value="b"> DApp 与区块链节点之间的通信桥梁</label>
+      <label><input type="radio" name="q3" value="c"> 存储区块链数据</label>
+    </div>
+    <div class="quiz-q">
+      <p>Q4: 私钥签名在哪一步完成？</p>
+      <label><input type="radio" name="q4" value="a"> 广播到网络后</label>
+      <label><input type="radio" name="q4" value="b"> 本地完成，私钥从不出钱包</label>
+      <label><input type="radio" name="q4" value="c"> 在 Mempool 中</label>
+    </div>
+    <button onclick="checkQuiz()">Submit Quiz</button>
+    <div class="quiz-result" id="quiz-result"></div>
+  </div>
+</section>
+
+<!-- SECTION 4: Meta -->
+<section>
+  <div class="meta-box">
+    <h3>Agent Collaboration Notes</h3>
+    <ul>
+      <li><span class="tag tag-agent">Agent</span> <strong>做了什么：</strong>生成完整 HTML/CSS/JS 结构，包括 5 步 Stepper、6 张翻转卡片、4 题 Quiz、Mempool 模拟器。所有代码由 Claude Code Agent 一次性生成。</li>
+      <li><span class="tag tag-human">Human</span> <strong>人工修改：</strong>调整了步骤面板的描述措辞使其更精确；Gas Limit 从 21,000 修正为正确的以太坊转账基准值；增加了 EIP-1559 的说明；调整配色方案对比度。</li>
+      <li><span class="tag tag-bug">Bug</span> <strong>Agent 输出不可靠的地方：</strong>初始生成的代码中 Gas Limit 描述为 "取决于网络拥堵"，实际 Gas Limit 是你设置的消耗上限，与拥堵无关（拥堵影响的是 Gas Price）；卡片翻转动画最初使用了 CSS perspective 但实现不完整，改为简单的 display 切换。</li>
+      <li><span class="tag tag-human">Next</span> <strong>下一步改进：</strong>接入真实的 eth_getTransactionByHash RPC 查询，让用户输入 tx hash 查看真实交易状态；添加 WebSocket 订阅实时 Mempool 交易；支持多链切换（Ethereum / Solana / L2）。</li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  AI × Web3 School — Cohort 0 — Student 3728<br>
+  Built with Claude Code Agent | <a href="https://github.com/JadeLight7/aiweb3" style="color:var(--accent);">GitHub Repo</a>
+</footer>
+
+<script>
+// Stepper logic
+const stepBtns = document.querySelectorAll('.step-btn');
+const panels = document.querySelectorAll('.step-panel');
+
+stepBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const step = parseInt(btn.dataset.step);
+    stepBtns.forEach((b, i) => {
+      b.classList.remove('active', 'done');
+      if (i < step) b.classList.add('done');
+      if (i === step) b.classList.add('active');
+    });
+    panels.forEach((p, i) => {
+      p.classList.toggle('visible', i === step);
+    });
+  });
+});
+
+// Mempool simulation
+function simulateMempool() {
+  const txs = [
+    { id: '0xabc1', gasPrice: 15, from: '0xAlice...' },
+    { id: '0xabc2', gasPrice: 45, from: '0xBob...' },
+    { id: '0xabc3', gasPrice: 8, from: '0xCharlie...' },
+    { id: '0xabc4', gasPrice: 100, from: '0xMEVbot...' },
+    { id: '0xdef1', gasPrice: 30, from: 'YOUR TX (0xYou...)' },
+    { id: '0xdef2', gasPrice: 22, from: '0xDave...' },
+  ];
+  txs.sort((a, b) => b.gasPrice - a.gasPrice);
+  const lines = ['Mempool — Sorted by Gas Price (high → low)', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━'];
+  txs.forEach((tx, i) => {
+    const marker = tx.from.includes('YOUR') ? ' ← YOUR TX' : '';
+    const fast = i < 2 ? ' ⚡ likely next block' : '';
+    lines.push(`#${i+1} | ${tx.id} | ${tx.gasPrice} gwei | ${tx.from}${marker}${fast}`);
+  });
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push('Tip: Gas Price 越高，越先被打包。你的交易排在 #' + (txs.findIndex(t => t.from.includes('YOUR')) + 1) + '，Gas Price 30 gwei。');
+  document.getElementById('mempool-sim').textContent = lines.join('\n');
+}
+
+// Quiz logic
+function checkQuiz() {
+  const answers = {
+    q1: 'b',
+    q2: 'b',
+    q3: 'b',
+    q4: 'b'
+  };
+  let score = 0;
+  const total = Object.keys(answers).length;
+  for (const [q, correct] of Object.entries(answers)) {
+    const selected = document.querySelector(`input[name="${q}"]:checked`);
+    if (selected && selected.value === correct) score++;
+  }
+  const resultEl = document.getElementById('quiz-result');
+  resultEl.classList.add('show');
+  if (score === total) {
+    resultEl.className = 'quiz-result correct show';
+    resultEl.textContent = `Perfect! ${score}/${total} — You've mastered the transaction lifecycle.`;
+  } else if (score >= total / 2) {
+    resultEl.className = 'quiz-result show';
+    resultEl.style.background = 'rgba(251,191,36,0.15)';
+    resultEl.style.color = '#facc15';
+    resultEl.style.border = '1px solid rgba(251,191,36,0.3)';
+    resultEl.textContent = `${score}/${total} — Good job! Review the steps above and try again.`;
+  } else {
+    resultEl.className = 'quiz-result wrong show';
+    resultEl.textContent = `${score}/${total} — Keep learning! Walk through the stepper and concept cards again.`;
+  }
+}
+</script>
+
+</body>
+</html>
