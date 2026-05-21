@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>区块链全生命周期交互实验台</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --panel-soft: #eef3f8;
+      --ink: #17212b;
+      --muted: #64748b;
+      --line: #d8e0e8;
+      --primary: #0f766e;
+      --primary-dark: #115e59;
+      --accent: #b45309;
+      --blue: #2563eb;
+      --red: #dc2626;
+      --green: #15803d;
+      --shadow: 0 16px 45px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(15, 118, 110, 0.08), transparent 320px),
+        var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      line-height: 1.55;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      border-radius: 6px;
+      padding: 0.7rem 0.95rem;
+      color: #fff;
+      background: var(--primary);
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+
+    button:hover { background: var(--primary-dark); transform: translateY(-1px); }
+    button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 3px solid rgba(37, 99, 235, 0.22);
+      outline-offset: 2px;
+    }
+
+    button.secondary {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    button.secondary:hover {
+      background: var(--panel-soft);
+      border-color: #b8c4d0;
+    }
+
+    header {
+      padding: 2.6rem 1.25rem 1rem;
+    }
+
+    .hero {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      gap: 1.5rem;
+      align-items: stretch;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 4rem);
+      line-height: 1.03;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 720px;
+      color: var(--muted);
+      font-size: 1.05rem;
+      margin: 1rem 0 1.35rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      align-items: center;
+    }
+
+    .chain-visual {
+      min-height: 300px;
+      background: #0f172a;
+      color: #dbeafe;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 1.2rem;
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      align-content: end;
+    }
+
+    .chain-visual::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 12% 22%, rgba(45, 212, 191, 0.32), transparent 22%),
+        radial-gradient(circle at 82% 18%, rgba(245, 158, 11, 0.2), transparent 24%),
+        linear-gradient(135deg, transparent 0 42%, rgba(255,255,255,0.07) 42% 44%, transparent 44% 100%);
+      pointer-events: none;
+    }
+
+    .blocks {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.7rem;
+      align-items: end;
+    }
+
+    .visual-block {
+      min-height: 118px;
+      border: 1px solid rgba(219, 234, 254, 0.22);
+      border-radius: 7px;
+      padding: 0.8rem;
+      background: rgba(15, 23, 42, 0.78);
+      display: grid;
+      gap: 0.5rem;
+      align-content: start;
+    }
+
+    .visual-block:nth-child(2) { transform: translateY(-18px); }
+    .visual-block:nth-child(3) { transform: translateY(-36px); }
+    .visual-block:nth-child(4) { transform: translateY(-54px); }
+
+    .hash-line {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(219, 234, 254, 0.22);
+    }
+
+    .hash-line.short { width: 62%; }
+    .hash-line.mid { width: 78%; }
+
+    main {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      padding: 1rem 1.25rem 3rem;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      padding: 0.9rem 0;
+      background: rgba(246, 247, 249, 0.92);
+      backdrop-filter: blur(10px);
+    }
+
+    .toolbar a {
+      color: var(--ink);
+      text-decoration: none;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.78);
+      border-radius: 999px;
+      padding: 0.42rem 0.78rem;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    section {
+      margin-top: 1.4rem;
+      padding: 1.4rem;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    section h2 {
+      margin: 0 0 0.35rem;
+      font-size: 1.35rem;
+      letter-spacing: 0;
+    }
+
+    .section-note {
+      margin: 0 0 1rem;
+      color: var(--muted);
+    }
+
+    .lifecycle {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 1rem;
+    }
+
+    .step-list {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .step-button {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 0.6rem;
+      align-items: center;
+      text-align: left;
+      color: var(--ink);
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      min-height: 58px;
+    }
+
+    .step-button:hover { background: #e4edf4; }
+    .step-button.active {
+      color: #fff;
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .step-number {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.72);
+      color: var(--primary-dark);
+      font-weight: 900;
+    }
+
+    .step-button.active .step-number {
+      background: #fff;
+      color: var(--primary-dark);
+    }
+
+    .step-title {
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .detail-panel {
+      min-height: 420px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 1rem;
+      padding: 1.2rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+    }
+
+    .detail-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 0.15rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(15, 118, 110, 0.1);
+      color: var(--primary-dark);
+      font-size: 0.78rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .detail-panel h3 {
+      margin: 0;
+      font-size: 1.45rem;
+    }
+
+    .detail-copy {
+      margin: 0.35rem 0 0;
+      color: var(--muted);
+    }
+
+    .flow-mini {
+      display: grid;
+      gap: 0.65rem;
+      align-content: start;
+    }
+
+    .flow-row {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 0.75rem;
+      align-items: start;
+      padding: 0.78rem;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+    }
+
+    .flow-row strong {
+      color: var(--primary-dark);
+    }
+
+    .code {
+      padding: 0.9rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: #111827;
+      color: #bbf7d0;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.88rem;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+
+    .sim-grid {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .control-box {
+      display: grid;
+      gap: 0.85rem;
+      padding: 1rem;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .field {
+      display: grid;
+      gap: 0.32rem;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 800;
+    }
+
+    .field input, .field select {
+      width: 100%;
+      border: 1px solid #bdc8d4;
+      border-radius: 6px;
+      padding: 0.68rem 0.75rem;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .status-board {
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .status-card {
+      border: 1px solid var(--line);
+      border-left: 5px solid #cbd5e1;
+      border-radius: 7px;
+      padding: 0.85rem;
+      background: #fff;
+    }
+
+    .status-card.active { border-left-color: var(--blue); background: #eff6ff; }
+    .status-card.done { border-left-color: var(--green); background: #f0fdf4; }
+    .status-card.fail { border-left-color: var(--red); background: #fef2f2; }
+    .status-card h4 { margin: 0 0 0.2rem; }
+    .status-card p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.85rem;
+    }
+
+    .concept-card {
+      min-height: 190px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 1rem;
+      cursor: pointer;
+      display: grid;
+      align-content: start;
+      gap: 0.55rem;
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .concept-card:hover {
+      transform: translateY(-2px);
+      border-color: #99b4cc;
+    }
+
+    .concept-card.flipped {
+      background: #f0fdfa;
+      border-color: rgba(15, 118, 110, 0.36);
+    }
+
+    .concept-card h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .concept-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .concept-card .answer {
+      display: none;
+      color: var(--ink);
+    }
+
+    .concept-card.flipped .prompt { display: none; }
+    .concept-card.flipped .answer { display: block; }
+
+    .quiz {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .quiz-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 1rem;
+      background: #fff;
+    }
+
+    .quiz-item h3 {
+      margin: 0 0 0.65rem;
+      font-size: 1rem;
+    }
+
+    .options {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .option {
+      display: flex;
+      gap: 0.55rem;
+      align-items: flex-start;
+      padding: 0.65rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .option:hover { background: var(--panel-soft); }
+    .option input { margin-top: 0.25rem; accent-color: var(--primary); }
+
+    .quiz-result {
+      display: none;
+      padding: 1rem;
+      border-radius: 8px;
+      font-weight: 800;
+    }
+
+    .quiz-result.show { display: block; }
+    .quiz-result.pass {
+      color: var(--green);
+      background: #f0fdf4;
+      border: 1px solid rgba(21, 128, 61, 0.25);
+    }
+    .quiz-result.retry {
+      color: var(--accent);
+      background: #fffbeb;
+      border: 1px solid rgba(180, 83, 9, 0.25);
+    }
+
+    .cli {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 260px;
+      gap: 1rem;
+    }
+
+    .terminal {
+      min-height: 320px;
+      max-height: 420px;
+      overflow: auto;
+      padding: 1rem;
+      border-radius: 8px;
+      background: #0b1020;
+      color: #dbeafe;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.9rem;
+      white-space: pre-wrap;
+    }
+
+    .command-pad {
+      display: grid;
+      gap: 0.55rem;
+      align-content: start;
+    }
+
+    .command-pad button {
+      width: 100%;
+      text-align: left;
+      background: #172554;
+    }
+
+    .command-pad button:hover { background: #1e3a8a; }
+
+    footer {
+      color: var(--muted);
+      text-align: center;
+      padding: 2rem 1rem;
+    }
+
+    @media (max-width: 880px) {
+      .hero, .lifecycle, .sim-grid, .cli {
+        grid-template-columns: 1fr;
+      }
+
+      .cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .toolbar {
+        position: static;
+      }
+    }
+
+    @media (max-width: 560px) {
+      header { padding-top: 1.5rem; }
+      main { padding-inline: 0.8rem; }
+      section { padding: 1rem; }
+      .cards { grid-template-columns: 1fr; }
+      .blocks { grid-template-columns: repeat(2, 1fr); }
+      .visual-block:nth-child(n) { transform: none; }
+      .flow-row { grid-template-columns: 1fr; }
+      .detail-head { display: grid; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="hero">
+      <div>
+        <h1>区块链全生命周期交互实验台</h1>
+        <p class="lead">从密钥生成、交易签名、广播、进入内存池、打包出块、共识确认，到链上查询与应用层索引，用一个小页面跑完整条链路。</p>
+        <div class="hero-actions">
+          <button data-jump="#flow">查看生命周期</button>
+          <button class="secondary" data-jump="#sim">运行交易模拟</button>
+          <button class="secondary" data-jump="#quiz">做 5 题自测</button>
+        </div>
+      </div>
+      <div class="chain-visual" aria-label="区块链区块示意图">
+        <div class="blocks">
+          <div class="visual-block">
+            <strong>Block 1042</strong>
+            <span class="hash-line"></span>
+            <span class="hash-line mid"></span>
+            <span class="hash-line short"></span>
+          </div>
+          <div class="visual-block">
+            <strong>Block 1043</strong>
+            <span class="hash-line mid"></span>
+            <span class="hash-line"></span>
+            <span class="hash-line short"></span>
+          </div>
+          <div class="visual-block">
+            <strong>Block 1044</strong>
+            <span class="hash-line"></span>
+            <span class="hash-line short"></span>
+            <span class="hash-line mid"></span>
+          </div>
+          <div class="visual-block">
+            <strong>Block 1045</strong>
+            <span class="hash-line short"></span>
+            <span class="hash-line"></span>
+            <span class="hash-line mid"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <nav class="toolbar" aria-label="页面导航">
+      <a href="#flow">流程图</a>
+      <a href="#sim">最小 Demo</a>
+      <a href="#cards">概念卡片</a>
+      <a href="#cli">CLI 模拟</a>
+      <a href="#quiz">Quiz</a>
+    </nav>
+
+    <section id="flow">
+      <h2>生命周期流程图</h2>
+      <p class="section-note">点击左侧步骤，查看每一环发生在哪里、检查什么、产出什么。</p>
+      <div class="lifecycle">
+        <div class="step-list" id="stepList"></div>
+        <article class="detail-panel" id="detailPanel"></article>
+      </div>
+    </section>
+
+    <section id="sim">
+      <h2>最小交易 Demo</h2>
+      <p class="section-note">输入一笔交易，页面会根据余额、手续费和 Gas 价格模拟它在网络中的状态变化。</p>
+      <div class="sim-grid">
+        <div class="control-box">
+          <div class="field">
+            <label for="amount">转账金额 ETH</label>
+            <input id="amount" type="number" min="0" step="0.01" value="1.20">
+          </div>
+          <div class="field">
+            <label for="gasPrice">Gas Price gwei</label>
+            <input id="gasPrice" type="number" min="1" step="1" value="18">
+          </div>
+          <div class="field">
+            <label for="nonce">Nonce</label>
+            <input id="nonce" type="number" min="0" step="1" value="42">
+          </div>
+          <div class="field">
+            <label for="networkLoad">网络拥堵</label>
+            <select id="networkLoad">
+              <option value="low">低：普通手续费也能快速进入区块</option>
+              <option value="mid" selected>中：矿工/验证者优先高费交易</option>
+              <option value="high">高：低 Gas 交易会滞留内存池</option>
+            </select>
+          </div>
+          <button id="runSim">发送交易</button>
+          <button class="secondary" id="resetSim">重置</button>
+        </div>
+        <div class="status-board" id="statusBoard"></div>
+      </div>
+    </section>
+
+    <section id="cards">
+      <h2>概念卡片</h2>
+      <p class="section-note">点击卡片翻面，快速复习关键概念。</p>
+      <div class="cards" id="conceptCards"></div>
+    </section>
+
+    <section id="cli">
+      <h2>CLI 模拟器</h2>
+      <p class="section-note">点命令按钮，观察从本地钱包到链上索引的典型输出。</p>
+      <div class="cli">
+        <pre class="terminal" id="terminal" aria-live="polite"></pre>
+        <div class="command-pad">
+          <button data-cmd="wallet">wallet:new</button>
+          <button data-cmd="sign">tx:sign</button>
+          <button data-cmd="broadcast">tx:broadcast</button>
+          <button data-cmd="block">block:produce</button>
+          <button data-cmd="query">chain:query</button>
+          <button class="secondary" data-cmd="clear">clear</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="quiz">
+      <h2>生命周期 Quiz</h2>
+      <p class="section-note">检查你是否理解了完整链路。提交后会给出得分和复习建议。</p>
+      <div class="quiz" id="quizBox"></div>
+      <p>
+        <button id="checkQuiz">提交答案</button>
+        <button class="secondary" id="resetQuiz">重做</button>
+      </p>
+      <div class="quiz-result" id="quizResult"></div>
+    </section>
+  </main>
+
+  <footer>Codex demo | 静态 HTML，无需构建，直接用浏览器打开。</footer>
+
+  <script>
+    const steps = [
+      {
+        title: "身份与密钥",
+        zone: "本地钱包",
+        summary: "用户生成私钥、公钥和地址。私钥负责签名，地址负责接收资产或调用合约。",
+        checks: "助记词备份、私钥不出本地、地址格式校验。",
+        output: "account = address + publicKey + privateKey",
+        sample: "address: 0xA91...7f2\npublicKey: 0x04c9...8d\nprivateKey: kept locally"
+      },
+      {
+        title: "构造交易",
+        zone: "客户端",
+        summary: "钱包或 dApp 填写 from、to、value、data、gas、nonce 等字段。",
+        checks: "余额是否足够、nonce 是否连续、合约 data 是否符合 ABI。",
+        output: "unsigned transaction",
+        sample: "{ from, to, value, nonce, gasLimit, maxFeePerGas, data }"
+      },
+      {
+        title: "签名",
+        zone: "本地钱包",
+        summary: "私钥对交易摘要签名，生成可被全网验证的签名，不需要暴露私钥。",
+        checks: "签名算法、chainId、防重放保护、用户确认交易内容。",
+        output: "signed transaction",
+        sample: "hash = keccak256(rlp(tx))\nsignature = secp256k1.sign(hash, privateKey)"
+      },
+      {
+        title: "广播",
+        zone: "P2P 网络",
+        summary: "节点接收签名交易，验证基础合法性后向邻居节点传播。",
+        checks: "签名有效、余额初检、手续费下限、交易大小限制。",
+        output: "transaction propagated",
+        sample: "peer.send(rawTx)\nseenBy: node-12, node-18, node-31"
+      },
+      {
+        title: "内存池",
+        zone: "节点",
+        summary: "未上链交易进入 mempool。验证者通常按费用、nonce 和策略选择交易。",
+        checks: "替换交易规则、nonce 队列、Gas Price 优先级、黑名单策略。",
+        output: "pending transaction",
+        sample: "mempool.add(tx)\npriority = fee / gasLimit"
+      },
+      {
+        title: "执行与打包",
+        zone: "验证者",
+        summary: "验证者选择交易，按顺序执行状态转换，并把交易收据写入候选区块。",
+        checks: "EVM/VM 执行、Gas 消耗、合约 revert、状态根更新。",
+        output: "candidate block",
+        sample: "stateBefore -> execute(tx) -> stateAfter\nreceipt.status = 1"
+      },
+      {
+        title: "共识确认",
+        zone: "共识层",
+        summary: "区块经过共识规则被接受。确认数增加后，被回滚的概率下降。",
+        checks: "区块签名、父区块、状态根、最终性规则。",
+        output: "confirmed block",
+        sample: "blockNumber: 1045\nconfirmations: 12\nfinalized: true"
+      },
+      {
+        title: "查询与索引",
+        zone: "应用层",
+        summary: "浏览器、RPC、索引器读取交易、事件日志和状态，供用户或 dApp 展示。",
+        checks: "RPC 返回值、事件 topic、索引延迟、重组处理。",
+        output: "explorer view + app state",
+        sample: "eth_getTransactionReceipt(txHash)\nindexed event: Transfer(from, to, value)"
+      }
+    ];
+
+    const concepts = [
+      ["Hash", "为什么区块链里到处都是哈希？", "哈希把任意输入压成固定长度摘要。交易哈希用于唯一标识交易，区块哈希连接父区块，状态根用于快速校验全局状态。"],
+      ["Nonce", "Nonce 只是一个随机数吗？", "在账户模型里，nonce 通常是账户已发交易计数。它保证交易顺序，并阻止同一笔签名交易被重复执行。"],
+      ["Gas", "Gas 是手续费本身吗？", "Gas 是计算和存储资源的计量单位。手续费通常等于 gasUsed 乘以价格参数，复杂合约调用会消耗更多 Gas。"],
+      ["Mempool", "为什么交易会 pending？", "交易先进入节点内存池等待打包。费用低、nonce 缺口、网络拥堵或节点策略都可能让交易长时间 pending。"],
+      ["Receipt", "交易成功后应该看什么？", "交易收据包含状态、实际 Gas 消耗、日志和所在区块。dApp 常通过 receipt 和 event logs 更新界面。"],
+      ["Finality", "上链等于绝对不可逆吗？", "多数链存在确认或最终性过程。确认越多，重组风险越低；有最终性机制的链会在规则满足后标记 finalized。"],
+      ["State", "区块链保存的是交易列表还是状态？", "两者都有。交易描述状态变化，节点执行交易后得到新状态，例如余额、合约存储和 nonce。"],
+      ["Indexer", "为什么 dApp 不全靠 RPC？", "RPC 适合查当前链上数据，复杂历史筛选通常交给索引器，把事件日志整理成可搜索、可分页的数据。"]
+    ];
+
+    const simStages = [
+      ["构造", "钱包生成交易字段并估算 Gas。"],
+      ["签名", "私钥在本地签名，得到 raw transaction。"],
+      ["广播", "RPC 节点接收交易并传播给邻居节点。"],
+      ["内存池", "交易等待验证者选择。"],
+      ["执行", "虚拟机执行交易并生成 receipt。"],
+      ["确认", "区块被共识接受，确认数开始增加。"]
+    ];
+
+    const quiz = [
+      {
+        q: "哪一步最应该确保私钥不离开用户设备？",
+        a: "签名",
+        options: ["内存池", "签名", "查询与索引"]
+      },
+      {
+        q: "交易 pending 最常见的直接原因是什么？",
+        a: "还没有被打包进区块",
+        options: ["还没有被打包进区块", "地址一定写错了", "区块链已经停止运行"]
+      },
+      {
+        q: "nonce 的核心作用是什么？",
+        a: "维持账户交易顺序并防止重复执行",
+        options: ["隐藏转账金额", "维持账户交易顺序并防止重复执行", "自动提高 Gas Price"]
+      },
+      {
+        q: "合约事件日志通常在哪个阶段被应用层大量使用？",
+        a: "查询与索引",
+        options: ["身份与密钥", "查询与索引", "构造交易"]
+      },
+      {
+        q: "验证者打包交易前通常会优先考虑什么？",
+        a: "交易合法性和费用优先级",
+        options: ["交易备注长度", "交易合法性和费用优先级", "发送者头像"]
+      }
+    ];
+
+    let activeStep = 0;
+
+    function renderSteps() {
+      const list = document.querySelector("#stepList");
+      list.innerHTML = steps.map((step, index) => `
+        <button class="step-button ${index === activeStep ? "active" : ""}" data-step="${index}">
+          <span class="step-number">${index + 1}</span>
+          <span class="step-title">${step.title}</span>
+        </button>
+      `).join("");
+
+      document.querySelectorAll("[data-step]").forEach((button) => {
+        button.addEventListener("click", () => {
+          activeStep = Number(button.dataset.step);
+          renderSteps();
+          renderDetail();
+        });
+      });
+    }
+
+    function renderDetail() {
+      const step = steps[activeStep];
+      document.querySelector("#detailPanel").innerHTML = `
+        <div class="detail-head">
+          <div>
+            <h3>${activeStep + 1}. ${step.title}</h3>
+            <p class="detail-copy">${step.summary}</p>
+          </div>
+          <span class="badge">${step.zone}</span>
+        </div>
+        <div class="flow-mini">
+          <div class="flow-row"><strong>检查点</strong><span>${step.checks}</span></div>
+          <div class="flow-row"><strong>产出</strong><span>${step.output}</span></div>
+          <pre class="code">${step.sample}</pre>
+        </div>
+      `;
+    }
+
+    function renderStatusBoard(states = []) {
+      const board = document.querySelector("#statusBoard");
+      board.innerHTML = simStages.map((stage, index) => {
+        const state = states[index] || "";
+        return `
+          <div class="status-card ${state}">
+            <h4>${index + 1}. ${stage[0]}</h4>
+            <p>${stage[1]}</p>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function runSimulation() {
+      const amount = Number(document.querySelector("#amount").value);
+      const gasPrice = Number(document.querySelector("#gasPrice").value);
+      const nonce = Number(document.querySelector("#nonce").value);
+      const load = document.querySelector("#networkLoad").value;
+      const balance = 2.5;
+      const minGas = load === "high" ? 35 : load === "mid" ? 15 : 5;
+      const feeEth = gasPrice * 21000 / 1e9;
+      const states = Array(simStages.length).fill("");
+
+      renderStatusBoard(states);
+
+      let failureIndex = -1;
+      if (!Number.isFinite(amount) || amount <= 0) failureIndex = 0;
+      if (failureIndex === -1 && amount + feeEth > balance) failureIndex = 1;
+      if (failureIndex === -1 && !Number.isInteger(nonce)) failureIndex = 2;
+      if (failureIndex === -1 && gasPrice < minGas) failureIndex = 3;
+
+      simStages.forEach((_, index) => {
+        window.setTimeout(() => {
+          const next = Array(simStages.length).fill("");
+          for (let i = 0; i < index; i += 1) next[i] = "done";
+          next[index] = "active";
+
+          if (failureIndex === index) {
+            next[index] = "fail";
+            renderStatusBoard(next);
+            annotateFailure(failureIndex, { amount, gasPrice, minGas, feeEth, balance });
+            return;
+          }
+
+          if (failureIndex !== -1 && index > failureIndex) return;
+          if (index === simStages.length - 1 && failureIndex === -1) next[index] = "done";
+          renderStatusBoard(next);
+        }, 420 * (index + 1));
+      });
+    }
+
+    function annotateFailure(index, info) {
+      const cards = document.querySelectorAll(".status-card");
+      const messages = [
+        "金额必须大于 0，交易构造失败。",
+        `余额不足：账户余额 ${info.balance} ETH，金额加预估手续费约 ${(info.amount + info.feeEth).toFixed(6)} ETH。`,
+        "nonce 必须是整数，节点会拒绝格式不合法的交易。",
+        `Gas Price ${info.gasPrice} gwei 低于当前拥堵门槛 ${info.minGas} gwei，交易大概率滞留内存池。`
+      ];
+      cards[index].querySelector("p").textContent = messages[index];
+    }
+
+    function renderConcepts() {
+      const box = document.querySelector("#conceptCards");
+      box.innerHTML = concepts.map(([title, prompt, answer]) => `
+        <article class="concept-card" tabindex="0" role="button" aria-label="翻转 ${title} 概念卡">
+          <h3>${title}</h3>
+          <p class="prompt">${prompt}</p>
+          <p class="answer">${answer}</p>
+        </article>
+      `).join("");
+
+      document.querySelectorAll(".concept-card").forEach((card) => {
+        const flip = () => card.classList.toggle("flipped");
+        card.addEventListener("click", flip);
+        card.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            flip();
+          }
+        });
+      });
+    }
+
+    function renderQuiz() {
+      const box = document.querySelector("#quizBox");
+      box.innerHTML = quiz.map((item, index) => `
+        <article class="quiz-item">
+          <h3>${index + 1}. ${item.q}</h3>
+          <div class="options">
+            ${item.options.map((option) => `
+              <label class="option">
+                <input type="radio" name="q${index}" value="${option}">
+                <span>${option}</span>
+              </label>
+            `).join("")}
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function checkQuiz() {
+      let score = 0;
+      quiz.forEach((item, index) => {
+        const selected = document.querySelector(`input[name="q${index}"]:checked`);
+        if (selected && selected.value === item.a) score += 1;
+      });
+      const result = document.querySelector("#quizResult");
+      result.className = `quiz-result show ${score >= 4 ? "pass" : "retry"}`;
+      result.textContent = `得分：${score}/${quiz.length}。${score >= 4 ? "已经掌握主干流程，可以继续看具体链的差异。" : "建议回到流程图，重点复习签名、内存池、确认和索引。"} `;
+    }
+
+    function appendTerminal(text) {
+      const terminal = document.querySelector("#terminal");
+      terminal.textContent += `${text}\n\n`;
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    function setupCli() {
+      const outputs = {
+        wallet: "$ wallet:new\naddress  0xA91d...7F2c\nnote     private key saved locally",
+        sign: "$ tx:sign --to 0xB0b --value 1.2\nnonce    42\nhash     0x7a6c...91bf\nstatus   signed",
+        broadcast: "$ tx:broadcast 0x7a6c...91bf\npeer     rpc-01\nmempool  pending",
+        block: "$ block:produce --validator v12\nblock    1045\ntxs      128\nreceipt  status=1 gasUsed=21000",
+        query: "$ chain:query --tx 0x7a6c...91bf\nconfirmations 12\nfinalized     true\nindexed       Transfer event",
+        clear: ""
+      };
+      document.querySelector("#terminal").textContent = "ready: click a command to replay the lifecycle\n\n";
+      document.querySelectorAll("[data-cmd]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const cmd = button.dataset.cmd;
+          if (cmd === "clear") {
+            document.querySelector("#terminal").textContent = "ready\n\n";
+            return;
+          }
+          appendTerminal(outputs[cmd]);
+        });
+      });
+    }
+
+    document.querySelectorAll("[data-jump]").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelector(button.dataset.jump).scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+
+    document.querySelector("#runSim").addEventListener("click", runSimulation);
+    document.querySelector("#resetSim").addEventListener("click", () => renderStatusBoard());
+    document.querySelector("#checkQuiz").addEventListener("click", checkQuiz);
+    document.querySelector("#resetQuiz").addEventListener("click", () => {
+      renderQuiz();
+      document.querySelector("#quizResult").className = "quiz-result";
+      document.querySelector("#quizResult").textContent = "";
+    });
+
+    renderSteps();
+    renderDetail();
+    renderStatusBoard();
+    renderConcepts();
+    renderQuiz();
+    setupCli();
+  </script>
+</body>
+</html>
