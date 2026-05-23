@@ -19,7 +19,7 @@ mapping(int16 => uint256) public tickBitmap;
 - **Key（`int16`）**：`wordPosition` — 把 tick 右移 8 位（除以 256），得到它属于哪个 word
 - **Value（`uint256`）**：`bitmap` — 256 位的位图，每个 bit 对应一个 tick 是否活跃
 
-![Tick Bitmap 存储结构](image-1.png)
+![Tick Bitmap 存储结构](img/image-1.png)
 
 ### 活跃状态判断
 
@@ -30,7 +30,7 @@ mapping(int16 => uint256) public tickBitmap;
 - 如果 tick 不活跃，用**掩码**把对应的 bit 从 1 翻转为 0（表示这个 tick 现在有流动性了）
 - 掩码操作：`tickBitmap[wordPosition] ^= (1 << bitPosition)`
 
-![掩码翻转操作](image.png)
+![掩码翻转操作](img/image.png)
 
 ---
 
@@ -57,8 +57,8 @@ tick 小（右）←──────→ tick 大（左）
 2. 将当前 bit 及右侧所有位清零：`bitmap & ~((1 << (bitPosition + 1)) - 1)`
 3. 用 `bitMostSignificantBit()` 找到剩余位中最右边的 1
 
-![高位查找掩码](image-3.png)
-![找到下一个 tick](image-2.png)
+![高位查找掩码](img/image-3.png)
+![找到下一个 tick](img/image-2.png)
 
 ### 为什么需要这个操作
 
@@ -70,16 +70,16 @@ tick 小（右）←──────→ tick 大（左）
 - 如果 A 的数量在这个区间内就能换完 → 直接用恒定乘积公式算出换出的 B 数量
 - 如果不够换 → 需要**跨 tick swap**，进入下一个区间继续
 
-![单区间 swap](image-5.png)
-![区间流动性](image-6.png)
+![单区间 swap](img/image-5.png)
+![区间流动性](img/image-6.png)
 
 ---
 
 ## Uniswap V3 LiquidityNet
 
-![LiquidityNet 概念](image-7.jpg)
+![LiquidityNet 概念](img/image-7.jpg)
 
-![LiquidityNet 示例](image-8.jpg)
+![LiquidityNet 示例](img/image-8.jpg)
 
 每个 tick 上记录 `liquidityNet`：
 - 添加流动性时，在 tick 的 `liquidityNet` 上累加（或减去）流动性数量
@@ -100,7 +100,7 @@ tick 小（右）←──────→ tick 大（左）
 4. 在新区间继续换
 5. 重复以上过程，直到全部换完
 
-![跨 tick swap 示意图](image-4.png)
+![跨 tick swap 示意图](img/image-4.png)
 
 ### Gas 消耗
 
