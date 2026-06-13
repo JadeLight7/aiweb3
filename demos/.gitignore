@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+.env
+node_modules/
+*.import
+godot/shared/render.png
+godot/shared/render.png.import
+godot/shared/scene_spec.json.import
+contracts/lib/
+contracts/cache/
+contracts/out/
+.claude/worktrees/
+../.serena/
+../.claude/
+../package*
+
+# Godot editor cache
+.godot/
+
+# Foundry build artifacts  
+contracts/cache/
+contracts/out/

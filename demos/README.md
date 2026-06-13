@@ -1,85 +1,124 @@
-# Demos — Task 3 Interactive Artifacts
+# 🏗️ AI-Powered 3D World Builder
 
-按 Agent 工具隔离产物，方便横向对比：
+> **GLM-5.1 驱动的自主 3D 世界构建系统** — 从自然语言到可交互 3D 场景 + 链上 NFT 完整闭环
+
+[![Z.AI Hackathon](https://img.shields.io/badge/Z.AI-Hackathon-blue)]()
+[![GLM-5.1](https://img.shields.io/badge/Model-GLM--5.1-green)]()
+[![Godot 4.6](https://img.shields.io/badge/Engine-Godot_4.6-478cbf)]()
+[![Solidity](https://img.shields.io/badge/Web3-ERC721_NFT-363636)]()
+
+## 📌 项目概述
+
+用户只需输入一句话（如"赛博朋克风格的 NFT 展厅"），GLM-5.1 Agent 自主完成：
+
+```
+用户自然语言 → GLM-5.1 场景规划 → Godot 3D 渲染 → GLM-5.1 视觉评估
+  → [不达标] 自动修复 → 重新渲染 → ... → [达标] → 链上 NFT 铸造
+```
+
+**全程 SSE 实时推送**，评委可在 Web Dashboard 上观看 Agent 的完整工作过程。
+
+> 📄 **完整黑客松提交文档**: [HACKATHON_SUBMISSION.md](./HACKATHON_SUBMISSION.md)
+
+## 🤖 GLM-5.1 核心调用位置
+
+| 调用点 | 文件 | 类型 | 功能 |
+|--------|------|------|------|
+| 场景规划 | `agent/planner.py` | Text → JSON | NL → scene_spec.json |
+| 视觉评估 | `agent/evaluator.py` | Multimodal | 截图 + spec → 5维度评分 |
+| 自我修复 | `agent/orchestrator.py` | Text → JSON | 评估反馈 → 修改 spec |
+
+**GLM-5.1 使用关键性：** Agent 的核心长程任务全部由 GLM-5.1 驱动，体现自主规划、持续执行和自我纠错能力。
+
+## 🏗️ 架构
+
+```
+Web Dashboard (SSE) ←── FastAPI Agent (Python)
+                              │
+                 ┌────────────┼────────────┐
+                 │            │            │
+           GLM-5.1 API    File IPC    Web3 (web3.py)
+         (plan/eval/fix)  (JSON+PNG)  (deploy+mint)
+                 │            │            │
+                 │      Godot 4.6     Anvil Chain
+                 │      (3D Render)   (ERC-721)
+```
+
+## 🚀 快速开始
+
+```bash
+# 1. 安装依赖
+pip install fastapi uvicorn web3 eth-account urllib3
+
+# 2. 设置 API Key
+export GLM_API_KEY="your_key_here"
+
+# 3. 启动 Agent 服务器
+cd agent && python server.py
+# → http://localhost:8001
+
+# 4. 触发生成
+curl -X POST http://localhost:8001/agent/generate \
+  -H "Content-Type: application/json" \
+  -d '{"request": "赛博朋克风格的NFT展厅，6个展位"}'
+```
+
+**可选**: 启动 Godot 4.6 获得实时 3D 渲染，启动 Anvil 获得链上 NFT 铸造。
+
+## 📁 项目结构
 
 ```
 demos/
-├── README.md
-├── claude-code/    # Claude Code 生成
-└── codex/          # Codex 生成
+├── agent/                # Python AI Agent (GLM-5.1 编排)
+│   ├── orchestrator.py   # 主编排器: plan → render → eval → fix → mint
+│   ├── planner.py        # GLM-5.1 场景规划
+│   ├── evaluator.py      # GLM-5.1 视觉评估
+│   ├── server.py         # FastAPI + SSE
+│   └── web3/             # NFT 合约部署与铸造
+├── godot/                # Godot 4.6 3D 场景构建
+│   ├── SceneBuilder.gd   # 主构建器 (2763 行, 9 种艺术风格)
+│   ├── scripts/          # CCGS 模块化组件
+│   │   ├── art_generator.gd     # 程序化艺术生成器
+│   │   └── material_factory.gd  # 材质工厂 + 缓存
+│   └── shared/           # Agent ↔ Godot IPC
+├── contracts/            # Solidity (Foundry)
+│   └── src/WorldBuilderNFT.sol  # ERC-721 NFT 合约
+├── design/gdd/           # 游戏设计文档
+├── docs/architecture/    # 系统架构文档
+├── CLAUDE.md             # CCGS 项目配置
+└── HACKATHON_SUBMISSION.md  # 完整提交文档
 ```
 
-## Artifacts
+## 🧩 CCGS 集成
 
-- Claude Code: `demos/claude-code/tx-lifecycle.html` (543 lines)
-- Codex: `demos/codex/blockchain-lifecycle.html` (1002 lines)
+本项目使用 [Claude Code Game Studios](https://github.com/Donchitos/Claude-Code-Game-Studios) (CCGS v1.0.0) 框架优化开发：
 
-## Comparison
+- `scene-organization` → 模块化 GDScript 组件 (`godot/scripts/`)
+- `procedural-generation` → 9 种程序化艺术算法 (`art_generator.gd`)
+- `godot-optimization` → Material 缓存系统 (`material_factory.gd`)
+- `state-machine` → Agent 状态管理 (plan → eval → fix)
+- `create-architecture` → 系统架构文档
+- `design-review` → 5 维度视觉评估框架
 
-### 1. Code Quality
+## 🛡️ 安全边界
 
-| 方面 | Claude Code | Codex |
-|------|-------------|-------|
-| 代码量 | 543 行 | 1002 行 |
-| 主题 | 暗色 (紫+蓝) | 浅色 (青绿+灰) |
-| CSS | 简洁，单一断点 | 多断点响应式 (880px/560px)，hover/transition 完善 |
-| JS 架构 | 直接 DOM 操作，数据内联 | 数据与渲染分离，renderX() 函数化 |
-| 无障碍 | 无 aria / 键盘支持 | aria-label、focus-visible、Enter/Space 翻卡 |
-| 交互组件 | Stepper + 翻卡 + Mempool 模拟器 + Quiz | Stepper + 翻卡 + 完整交易模拟器(含失败动画) + CLI 模拟器 + Quiz + 区块可视化图 |
-| **结论** | 精简直接，功能聚焦 | 工程化更好，组件更丰富，可访问性胜出 |
+| 边界 | 说明 |
+|------|------|
+| API Key | 仅环境变量，不写入代码 |
+| 私钥 | 仅 Anvil 测试私钥，**绝不用于主网** |
+| Web3 | 仅 Anvil (31337) + Sepolia |
+| 失败处理 | NFT 铸造非阻塞，不影响 3D 流程 |
+| 人工介入 | 3 轮修复未通过 → Agent 终止 |
 
-### 2. Context Retention
+详见 [HACKATHON_SUBMISSION.md - 安全边界说明](./HACKATHON_SUBMISSION.md#-安全边界说明)
 
-| 方面 | Claude Code | Codex |
-|------|-------------|-------|
-| 与已有笔记关联 | 紧密 — 5 步直接对应 day3.md 的 5 条知识点 | 松 — 扩展为 8 步通用教程 |
-| 用户画像感知 | 知悉用户 Web3 熟练，避开基础概念直奔交叉点 | 面向通用区块链入门读者 |
-| 对话延续 | 同一会话，知道前置讨论内容 | 独立生成，无前后文 |
-| **结论** | 上下文保持更好，产物锚定用户学习进度 | 更像是独立教程，可复用但缺乏个性化 |
+## 📊 Demo 效果
 
-### 3. Content Organization
+- ⏱️ 端到端延迟: 15-45s (取决于 Godot 是否运行 + 修复轮次)
+- 🎨 9 种程序化 NFT 艺术风格
+- 🔄 GLM-5.1 自主评估 + 修复 (最多 3 轮)
+- ⛓️ 完整链上 NFT 铸造
 
-| 方面 | Claude Code | Codex |
-|------|-------------|-------|
-| 生命周期步骤 | 5 步水平 Stepper | 8 步垂直侧栏 Stepper |
-| 概念卡片 | 6 张 (Nonce/RPC/ECDSA/Gas/Mempool/Finality) | 8 张 (Hash/Nonce/Gas/Mempool/Receipt/Finality/State/Indexer) |
-| 独有组件 | Mempool 优先级模拟器、Agent Collaboration Notes | Hero 区块图、CLI 模拟器、交易失败状态分支动画 |
-| Agent 分工记录 | ✅ 页面内嵌 | ❌ 无 |
-| **结论** | 更聚焦，透明标注 Agent 贡献 | 覆盖更广，模块更丰富 |
+## 📄 License
 
-### 4. Tool Integration
-
-| 方面 | Claude Code | Codex |
-|------|-------------|-------|
-| 文件创建 | Write 工具直接写入仓库 | 用户手动放入 |
-| Git 管理 | add + commit + push 一体化 | 无 |
-| 目录隔离 | 主动创建 claude-code/codex/ 子目录 + README | 无 |
-| 浏览器打开 | `open` 命令一键启动 | 无 |
-| **结论** | 工具调用完胜 — 全流程自动化 | 纯代码生成，无工具链集成 |
-
-### 5. Long-term Learning Record
-
-| 方面 | Claude Code | Codex |
-|------|-------------|-------|
-| 可追溯性 | Git 历史完整，每次改动有 commit message | 依赖用户手动管理 |
-| 模板复用 | templates/ 目录提供 daily-note / task-note 模板 | 无 |
-| 反馈闭环 | handbook-feedback/ 已初始化 | 无 |
-| **结论** | 适合长期学习记录维护 | 单次生成质量高，但缺少持续学习基础设施 |
-
----
-
-## Summary
-
-| 维度 | 优势方 |
-|------|--------|
-| 代码工程化 & 组件丰富度 | Codex |
-| 对话上下文 & 个性化 | Claude Code |
-| 工具链集成 (Git/文件/浏览器) | Claude Code |
-| 内容覆盖面 | Codex |
-| 长期学习基础设施 | Claude Code |
-
-**最佳实践：** 两者互补 — Claude Code 负责学习计划、打卡、Git 管理和反馈闭环；Codex 适合生成丰富的前端交互 demo。可让其中一方生成初版，另一方做 code review 和补充。
-
----
-
-*Task 3 | AI × Web3 School | Cohort 0*
+MIT

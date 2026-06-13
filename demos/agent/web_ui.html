@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🤖 3D World Builder Agent</title>
+<style>
+:root {
+  --bg: #0a0a1a; --surface: #141428; --surface2: #1e1e3a;
+  --accent: #00d4aa; --accent2: #8B5CF6; --text: #e2e8f0; --text2: #94a3b8;
+  --success: #22c55e; --error: #ef4444; --warning: #f59e0b; --border: #334155;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.header { background: linear-gradient(135deg, var(--surface), var(--surface2)); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+.header h1 { font-size: 20px; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.badge { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.main { display: grid; grid-template-columns: 1fr 1fr; gap: 0; height: calc(100vh - 52px); }
+.panel { padding: 20px; overflow-y: auto; }
+.panel-left { border-right: 1px solid var(--border); }
+h2 { font-size: 14px; color: var(--accent); margin-bottom: 12px; }
+textarea { width: 100%; height: 100px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 14px; resize: vertical; font-family: inherit; }
+textarea:focus { outline: none; border-color: var(--accent); }
+.btn { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 12px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Timeline */
+.timeline { margin-top: 16px; }
+.timeline-header { font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.model-badge { font-size: 10px; background: rgba(0,212,170,0.15); color: var(--accent); padding: 2px 8px; border-radius: 10px; }
+.tstep { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; border-left: 2px solid var(--border); margin-left: 10px; padding-left: 16px; position: relative; font-size: 12px; }
+.tstep::before { content: ''; position: absolute; left: -6px; top: 10px; width: 10px; height: 10px; border-radius: 50%; background: var(--border); border: 2px solid var(--bg); }
+.tstep.running::before { background: var(--warning); animation: pulse 1s infinite; }
+.tstep.completed::before { background: var(--success); }
+.tstep.failed::before { background: var(--error); }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); } 50% { box-shadow: 0 0 0 6px rgba(245,158,11,0); } }
+.sinfo { flex: 1; min-width: 0; }
+.stool { font-weight: 600; color: var(--text); }
+.sreason { color: var(--text2); font-size: 10px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sbadge { font-size: 10px; padding: 1px 6px; border-radius: 8px; display: inline-block; }
+.sbadge.completed { background: rgba(34,197,94,0.15); color: var(--success); }
+.sbadge.failed { background: rgba(239,68,68,0.15); color: var(--error); }
+.sbadge.running { background: rgba(245,158,11,0.15); color: var(--warning); }
+/* Validation */
+.vround { margin: 8px 0 8px 20px; padding: 8px 12px; border-left: 3px solid var(--accent2); background: rgba(139,92,246,0.05); border-radius: 0 6px 6px 0; font-size: 11px; }
+.vround .vtitle { font-weight: 600; color: var(--accent2); margin-bottom: 4px; }
+.repair-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; padding: 3px 8px; border-radius: 8px; margin: 4px 0; background: rgba(0,212,170,0.1); color: var(--accent); }
+/* Right panel */
+.screenshot-container { margin-bottom: 16px; text-align: center; }
+.screenshot-container img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+.no-render { padding: 40px; text-align: center; color: var(--text2); font-size: 13px; border: 1px dashed var(--border); border-radius: 8px; }
+.spec-viewer { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; color: var(--text2); }
+.status-bar { text-align: center; padding: 12px; font-size: 12px; color: var(--text2); }
+.status-bar .blink { animation: blink 1.5s infinite; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px; text-align: center; }
+.stat-val { font-size: 20px; font-weight: 700; color: var(--accent); }
+.stat-label { font-size: 10px; color: var(--text2); margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🤖 AI-Powered 3D World Builder</h1>
+  <span class="badge">GLM-5.1 Agent</span>
+</div>
+<div class="main">
+  <!-- Left: Input + Timeline -->
+  <div class="panel panel-left">
+    <h2>📝 World Request</h2>
+    <textarea id="userRequest" placeholder="Describe the exhibition hall you want...&#10;&#10;Examples:&#10;- build a cyberpunk NFT digital art gallery with immersive lighting&#10;- 赛博朋克风格的 NFT 数字艺术画廊，要有未来感和沉浸感&#10;- DAO community hall for online summit with voting area"></textarea>
+    <button class="btn" id="btnGenerate" onclick="generate()">🚀 Build World</button>
+
+    <div class="timeline" id="timelineSection" style="display:none;">
+      <div class="timeline-header">
+        <span>🤖 Agent 执行追踪</span>
+        <span class="model-badge" id="modelBadge">waiting...</span>
+      </div>
+      <div id="timelineSteps"></div>
+      <div id="timelineValidation"></div>
+      <div class="status-bar" id="statusBar">
+        <span class="blink" id="statusText">Ready</span>
+      </div>
+    </div>
+
+    <div id="statsSection" style="display:none;">
+      <div class="stats">
+        <div class="stat"><div class="stat-val" id="statSteps">-</div><div class="stat-label">Steps</div></div>
+        <div class="stat"><div class="stat-val" id="statScore">-</div><div class="stat-label">Score</div></div>
+        <div class="stat"><div class="stat-val" id="statRounds">-</div><div class="stat-label">Rounds</div></div>
+        <div class="stat"><div class="stat-val" id="statTime">-</div><div class="stat-label">Time</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Screenshot + Spec -->
+  <div class="panel">
+    <h2>🖼️ 3D Preview</h2>
+    <div class="screenshot-container">
+      <div class="no-render" id="noRender">Generate a world to see the 3D render from Godot</div>
+      <img id="renderImg" style="display:none;" alt="3D Render">
+    </div>
+
+    <h2>📋 Scene Spec</h2>
+    <div class="spec-viewer" id="specViewer">// Scene spec will appear here after generation</div>
+
+    <h2 style="margin-top:16px;">🔍 Execution Trace</h2>
+    <div class="spec-viewer" id="traceViewer" style="max-height:200px;">// Full trace will appear here</div>
+  </div>
+</div>
+
+<script>
+let lastTrace = null;
+
+async function generate() {
+  const btn = document.getElementById('btnGenerate');
+  const req = document.getElementById('userRequest').value.trim();
+  if (!req) { alert('Please describe the world you want'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Agent Running...';
+  document.getElementById('timelineSection').style.display = 'block';
+  document.getElementById('timelineSteps').innerHTML = '';
+  document.getElementById('timelineValidation').innerHTML = '';
+  document.getElementById('statsSection').style.display = 'none';
+  document.getElementById('statusText').textContent = 'Connecting to Agent...';
+
+  try {
+    const resp = await fetch('/agent/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ request: req }),
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try { handleEvent(JSON.parse(line.slice(6))); } catch(e) { console.warn('Parse err:', e); }
+        }
+      }
+    }
+  } catch (e) {
+    document.getElementById('statusText').textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 Build World';
+  }
+}
+
+const ICONS = { plan_scene:'🗺️', validate_spec:'✅', evaluate_render:'👁️', revise_spec:'🔧', write_spec:'💾', wait_for_render:'📸', mint_nfts:'⛓️' };
+
+function handleEvent(event) {
+  const type = event.type;
+  const data = event.data || {};
+
+  switch (type) {
+    case 'status':
+      document.getElementById('statusText').textContent = data.message || 'Processing...';
+      break;
+    case 'plan_created':
+      document.getElementById('modelBadge').textContent = data.model || 'glm-5.1';
+      document.getElementById('statusText').textContent = `📋 Plan: ${data.plan?.length || 0} steps`;
+      renderPlan(data.plan || []);
+      break;
+    case 'step_started':
+      addStep(data.step_id, 'running', data.tool, data.description);
+      document.getElementById('statusText').textContent = `⚙️ ${data.tool}...`;
+      document.getElementById('btnGenerate').textContent = `⏳ ${data.tool}...`;
+      break;
+    case 'step_completed':
+      updateStep(data.step_id, 'completed', data.duration_ms, data.output_summary);
+      break;
+    case 'step_failed':
+      updateStep(data.step_id, 'failed', data.duration_ms, data.error);
+      break;
+    case 'render_ready':
+      const img = document.getElementById('renderImg');
+      img.src = (data.image_url || '/agent/screenshot') + '?t=' + Date.now();
+      img.style.display = 'block';
+      document.getElementById('noRender').style.display = 'none';
+      break;
+    case 'evaluation_result':
+      addValidation(data);
+      break;
+    case 'repair_started':
+      addRepair(data);
+      break;
+    case 'repair_completed':
+      break;
+    case 'mint_started':
+      addStep('web3_mint', 'running', 'mint_nfts', data.message || 'Connecting to blockchain...');
+      document.getElementById('statusText').textContent = '⛓️ Minting NFTs on ' + (data.chain || 'blockchain') + '...';
+      document.getElementById('btnGenerate').textContent = '⏳ Minting NFTs...';
+      break;
+    case 'mint_completed':
+      updateStep('web3_mint', data.error ? 'failed' : 'completed', 0, data.error || `${(data.mints||[]).length} NFTs minted`);
+      if (!data.error && data.contract_address) {
+        const explorer = data.chain_id === 11155111 ? 'https://sepolia.etherscan.io' : '';
+        let mintHtml = `<div class="vround"><div class="vtitle">⛓️ NFTs Minted on Chain ${data.chain_id}</div>`;
+        mintHtml += `<div style="margin:4px 0;">Contract: <code style="color:var(--accent)">${data.contract_address}</code>`;
+        if (explorer) mintHtml += ` <a href="${explorer}/address/${data.contract_address}" target="_blank" style="color:var(--accent2)">↗</a>`;
+        mintHtml += `</div>`;
+        mintHtml += `<div style="margin:4px 0;">Wallet: <code>${data.wallet_address || ''}</code></div>`;
+        for (const m of (data.mints || [])) {
+          const txShort = m.tx_hash ? m.tx_hash.slice(0, 10) + '...' : '';
+          mintHtml += `<div style="color:var(--text2);margin-top:2px;">#${m.token_id} ${m.booth_id} <span style="color:var(--text2);font-size:10px">tx:${txShort}</span>`;
+          if (explorer && m.tx_hash) mintHtml += ` <a href="${explorer}/tx/${m.tx_hash}" target="_blank" style="color:var(--accent2);font-size:10px">↗</a>`;
+          mintHtml += `</div>`;
+        }
+        mintHtml += `<div style="margin-top:4px;color:var(--text2)">Gas: ${data.total_gas_used || '?'}</div></div>`;
+        document.getElementById('timelineValidation').insertAdjacentHTML('beforeend', mintHtml);
+      }
+      break;
+    case 'generation_complete':
+      lastTrace = data.trace;
+      if (data.scene_spec) {
+        document.getElementById('specViewer').textContent = JSON.stringify(data.scene_spec, null, 2);
+      }
+      if (data.trace) {
+        document.getElementById('traceViewer').textContent = JSON.stringify(data.trace, null, 2);
+        const t = data.trace;
+        document.getElementById('statsSection').style.display = 'block';
+        document.getElementById('statSteps').textContent = (t.execution_steps || []).length;
+        const rounds = t.validation_rounds || [];
+        const lastRound = rounds.length ? rounds[rounds.length - 1] : null;
+        document.getElementById('statScore').textContent = lastRound ? lastRound.score + '/10' : '-';
+        document.getElementById('statRounds').textContent = rounds.length;
+        document.getElementById('statTime').textContent = (t.total_duration_ms / 1000).toFixed(1) + 's';
+      }
+      const status = data.trace?.final_status || (data.error ? 'failed' : 'done');
+      document.getElementById('statusText').textContent = `✅ ${status}`;
+      document.getElementById('statusText').classList.remove('blink');
+      // Try loading screenshot
+      if (data.render_available !== false) {
+        const img2 = document.getElementById('renderImg');
+        img2.src = '/agent/screenshot?t=' + Date.now();
+        img2.style.display = 'block';
+        document.getElementById('noRender').style.display = 'none';
+      }
+      break;
+  }
+}
+
+function renderPlan(plan) {
+  const c = document.getElementById('timelineSteps');
+  c.innerHTML = plan.map(s => `
+    <div class="tstep pending" id="ts-${s.step_id}">
+      <div class="sinfo">
+        <div class="stool">${ICONS[s.tool]||'🔧'} ${s.tool}</div>
+        <div class="sreason" title="${s.reason||''}">${s.reason||''}</div>
+      </div>
+      <div><span class="sbadge">pending</span></div>
+    </div>`).join('');
+}
+
+function addStep(id, status, tool, desc) {
+  let el = document.getElementById(`ts-${id}`);
+  if (!el) {
+    const c = document.getElementById('timelineSteps');
+    c.insertAdjacentHTML('beforeend', `
+      <div class="tstep ${status}" id="ts-${id}">
+        <div class="sinfo">
+          <div class="stool">${ICONS[tool]||'🔧'} ${tool}</div>
+          <div class="sreason">${desc||''}</div>
+        </div>
+        <div><span class="sbadge ${status}">${status}</span></div>
+      </div>`);
+  } else {
+    el.className = `tstep ${status}`;
+    el.querySelector('.sbadge').className = `sbadge ${status}`;
+    el.querySelector('.sbadge').textContent = status;
+  }
+}
+
+function updateStep(id, status, ms, summary) {
+  const el = document.getElementById(`ts-${id}`);
+  if (!el) return;
+  el.className = `tstep ${status}`;
+  const badge = el.querySelector('.sbadge');
+  badge.className = `sbadge ${status}`;
+  badge.textContent = status;
+  if (ms) badge.insertAdjacentHTML('afterend', ` <span style="font-size:10px;color:var(--text2)">${ms}ms</span>`);
+  if (summary && status === 'failed') {
+    el.querySelector('.sinfo').insertAdjacentHTML('beforeend', `<div style="color:var(--error);font-size:10px;margin-top:2px;">${summary}</div>`);
+  }
+}
+
+function addValidation(data) {
+  const c = document.getElementById('timelineValidation');
+  const icon = data.passed ? '✅' : '❌';
+  let dims = '';
+  if (data.dimensions) {
+    for (const [k, v] of Object.entries(data.dimensions)) {
+      dims += `<div style="color:var(--text2);margin-top:1px;">${k}: ${v}</div>`;
+    }
+  }
+  c.insertAdjacentHTML('beforeend', `
+    <div class="vround">
+      <div class="vtitle">${icon} Round ${data.round}: ${data.score}/10</div>
+      ${dims}
+    </div>`);
+}
+
+function addRepair(data) {
+  const c = document.getElementById('timelineValidation');
+  c.insertAdjacentHTML('beforeend', `
+    <div class="repair-badge">🔧 Repair: <b>${data.strategy||'revise'}</b> — ${data.reason||''}</div>`);
+}
+</script>
+</body>
+</html>

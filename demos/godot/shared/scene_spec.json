@@ -1,0 +1,193 @@
+{
+  "theme_name": "蒸汽朋克黄铜工坊",
+  "global_color_palette": [
+    "#1A1A1D",
+    "#B8672D",
+    "#FFBF00",
+    "#5C4033",
+    "#E0E0E0"
+  ],
+  "rooms": [
+    {
+      "id": "main_hall",
+      "dimensions": [
+        16.0,
+        6.0,
+        20.0
+      ],
+      "wall_color": "#1A1A1D"
+    }
+  ],
+  "booths": [
+    {
+      "id": "booth_1",
+      "position": [
+        -5.5,
+        0.0,
+        -6.0
+      ],
+      "orientation": 90.0,
+      "nft": {
+        "name": "永恒的齿轮",
+        "collection": "维多利亚机械之心",
+        "art_style": "fractal",
+        "art_seed": 1024,
+        "art_colors": [
+          "#B8672D",
+          "#FFBF00",
+          "#2C2C34"
+        ],
+        "token_id": ""
+      }
+    },
+    {
+      "id": "booth_2",
+      "position": [
+        5.5,
+        0.0,
+        -6.0
+      ],
+      "orientation": -90.0,
+      "nft": {
+        "name": "发条核心",
+        "collection": "维多利亚机械之心",
+        "art_style": "geometric",
+        "art_seed": 2048,
+        "art_colors": [
+          "#5C4033",
+          "#E0E0E0",
+          "#D4AF37"
+        ],
+        "token_id": ""
+      }
+    },
+    {
+      "id": "booth_3",
+      "position": [
+        -5.5,
+        0.0,
+        0.0
+      ],
+      "orientation": 90.0,
+      "nft": {
+        "name": "蒸汽之息",
+        "collection": "维多利亚机械之心",
+        "art_style": "flow_field",
+        "art_seed": 3072,
+        "art_colors": [
+          "#8A8A8A",
+          "#FFFFFF",
+          "#FFBF00"
+        ],
+        "token_id": ""
+      }
+    },
+    {
+      "id": "booth_4",
+      "position": [
+        5.5,
+        0.0,
+        0.0
+      ],
+      "orientation": -90.0,
+      "nft": {
+        "name": "黄铜管道",
+        "collection": "维多利亚机械之心",
+        "art_style": "mandala",
+        "art_seed": 4096,
+        "art_colors": [
+          "#B8672D",
+          "#1A1A1D",
+          "#FF8C00"
+        ],
+        "token_id": ""
+      }
+    },
+    {
+      "id": "booth_5",
+      "position": [
+        0.0,
+        0.0,
+        7.0
+      ],
+      "orientation": 0.0,
+      "nft": {
+        "name": "复古蓝图",
+        "collection": "维多利亚机械之心",
+        "art_style": "pixel_art",
+        "art_seed": 5120,
+        "art_colors": [
+          "#1E3A5F",
+          "#E0E0E0",
+          "#B8672D"
+        ],
+        "token_id": ""
+      }
+    }
+  ],
+  "lights": [
+    {
+      "position": [
+        -4.0,
+        5.4,
+        -7.5
+      ],
+      "color": "#FFBF00",
+      "intensity": 550
+    },
+    {
+      "position": [
+        4.0,
+        5.4,
+        -7.5
+      ],
+      "color": "#FFBF00",
+      "intensity": 550
+    },
+    {
+      "position": [
+        -4.0,
+        5.4,
+        0.0
+      ],
+      "color": "#FFBF00",
+      "intensity": 600
+    },
+    {
+      "position": [
+        4.0,
+        5.4,
+        0.0
+      ],
+      "color": "#FFBF00",
+      "intensity": 600
+    },
+    {
+      "position": [
+        -4.0,
+        5.4,
+        7.5
+      ],
+      "color": "#FFBF00",
+      "intensity": 550
+    },
+    {
+      "position": [
+        4.0,
+        5.4,
+        7.5
+      ],
+      "color": "#FFBF00",
+      "intensity": 550
+    },
+    {
+      "position": [
+        0.0,
+        5.4,
+        0.0
+      ],
+      "color": "#FFFFFF",
+      "intensity": 350
+    }
+  ]
+}
